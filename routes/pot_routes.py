@@ -11,8 +11,8 @@ FIX: removed the local _POT_SIZE_ML dict. The pot size label → ml
 from fastapi import APIRouter, HTTPException, Query
 from postgrest.exceptions import APIError
 
-from supabase_client import get_pots_for_device, create_pot, handle_db_error
-from models import CreatePotRequest
+from supabase_client import get_pots_for_device, create_pot, handle_db_error, supabase
+from models import CreatePotRequest, UpdatePotModeRequest
 
 router = APIRouter()
 
@@ -61,3 +61,41 @@ async def list_pots(device_id: str = Query(..., description="UUID of the device"
         raise HTTPException(status_code=400, detail=handle_db_error(exc))
 
     return {"device_id": device_id, "pots": pots}
+
+
+@router.patch("/{pot_id}/mode")
+async def update_pot_mode(pot_id: str, data: UpdatePotModeRequest):
+    """
+    Update the irrigation mode of a specific pot.
+
+    - AUTO  → irrigation triggers automatically when moisture < plant threshold.
+    - MANUAL → automatic irrigation is suppressed; only manual triggers apply.
+    """
+    # Check the pot exists
+    try:
+        result = (
+            supabase.table("pots")
+            .select("id, mode")
+            .eq("id", pot_id)
+            .execute()
+        )
+    except APIError as exc:
+        raise HTTPException(status_code=400, detail=handle_db_error(exc))
+
+    if not result.data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Pot '{pot_id}' not found.",
+        )
+
+    # Apply the mode update
+    try:
+        supabase.table("pots").update({"mode": data.mode}).eq("id", pot_id).execute()
+    except APIError as exc:
+        raise HTTPException(status_code=400, detail=handle_db_error(exc))
+
+    return {
+        "pot_id": pot_id,
+        "mode": data.mode,
+        "message": "Mode updated successfully",
+    }

@@ -77,6 +77,20 @@ class SensorDataRequest(BaseModel):
 # Irrigation / pump models
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Pot mode update model
+# ---------------------------------------------------------------------------
+
+class UpdatePotModeRequest(BaseModel):
+    mode: Literal["AUTO", "MANUAL"] = Field(
+        ..., description="Irrigation mode for the pot"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Irrigation / pump models
+# ---------------------------------------------------------------------------
+
 class PumpControlRequest(BaseModel):
     device_id: str = Field(..., description="UUID of the device to control")
     action: Literal["ON", "OFF"] = Field(..., description="Desired pump state")
